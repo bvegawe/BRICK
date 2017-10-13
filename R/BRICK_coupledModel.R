@@ -18,6 +18,8 @@
 ##  tstep                  model tstep [years]
 ##  i0                     index of reference year, within mod.time. For initial conditions to sub-models.
 ##  l.aisfastdy            logical, whether or not to use AIS fast dynamics emulator
+##  l.obs.norm             logical, whether or not to normalize to observations, rather than model output
+##  mean.obs               observation values for normalization if l.obs.norm is set
 ##
 ## Requires:
 ##  luse.brick, includes: luse.doeclim, luse.gsic, luse.te, luse.tee, luse.simple, 
@@ -56,7 +58,9 @@ brick_model = function(parameters.in,
                        ind.norm.sl = NULL,
                        luse.brick,
                        i0,
-                       l.aisfastdy
+                       l.aisfastdy,
+                       l.obs.norm = FALSE,
+                       mean.obs = NULL
 ){
 
   # Initialize the list of output (do NOT grow lists/arrays in R)
@@ -99,8 +103,11 @@ brick_model = function(parameters.in,
                         forcing.other=forcing.in$other)
 
     ## Normalize temperature to match the observations
-    itmp = ind.norm.data[match("temp",ind.norm.data[,1]),2]:ind.norm.data[match("temp",ind.norm.data[,1]),3]
-    sneasy.out$temp = sneasy.out$temp - mean(sneasy.out$temp[itmp])
+    if (l.obs.norm) {sneasy.out$temp = sneasy.out$temp - mean.obs$temp}
+    else{
+        itmp = ind.norm.data[match("temp",ind.norm.data[,1]),2]:ind.norm.data[match("temp",ind.norm.data[,1]),3]
+        sneasy.out$temp = sneasy.out$temp - mean(sneasy.out$temp[itmp])
+    }
 
     #itmp = ind.norm.data[match("ocheat",ind.norm.data[,1]),2]:ind.norm.data[match("ocheat",ind.norm.data[,1]),3]
     #sneasy.out$ocheat = sneasy.out$ocheat - mean(sneasy.out$ocheat[itmp])
@@ -134,8 +141,11 @@ brick_model = function(parameters.in,
     doeclim.out = doeclimF(S=S, kappa=kappa.doeclim, forcing.total=forcing.total, mod.time=mod.time)
 
     ## Normalize temperature and ocean heat to match the observations
-    itmp = ind.norm.data[match("temp",ind.norm.data[,1]),2]:ind.norm.data[match("temp",ind.norm.data[,1]),3]
-    doeclim.out$temp = doeclim.out$temp - mean(doeclim.out$temp[itmp])
+    if (l.obs.norm) {doeclim.out$temp = doeclim.out$temp - mean.obs$temp}
+    else{
+        itmp = ind.norm.data[match("temp",ind.norm.data[,1]),2]:ind.norm.data[match("temp",ind.norm.data[,1]),3]
+        doeclim.out$temp = doeclim.out$temp - mean(doeclim.out$temp[itmp])
+    }
 
     #itmp = ind.norm.data[match("ocheat",ind.norm.data[,1]),2]:ind.norm.data[match("ocheat",ind.norm.data[,1]),3]
     #doeclim.out$ocheat = doeclim.out$ocheat - mean(doeclim.out$ocheat[itmp])
@@ -179,7 +189,8 @@ brick_model = function(parameters.in,
     brick.out[[outcnt]] = gsic.out.norm; names(brick.out)[outcnt]="gsic.out"; outcnt=outcnt+1;
 
     ## Add this contribution to the total sea level rise
-    slr.out = slr.out + (gsic.out - mean(gsic.out[ind.norm.sl]))
+    if (l.obs.norm) {slr.out = slr.out + gsic.out}
+    else {slr.out = slr.out + (gsic.out - mean(gsic.out[ind.norm.sl]))}
 
   }
 
@@ -210,7 +221,8 @@ brick_model = function(parameters.in,
     brick.out[[outcnt]] = te.out.norm; names(brick.out)[outcnt]="te.out"; outcnt=outcnt+1;
 
     ## Add this contribution to the total sea level rise
-    slr.out = slr.out + (te.out.norm - mean(te.out.norm[ind.norm.sl]))
+    if (l.obs.norm) {slr.out = slr.out + te.out}
+    else {slr.out = slr.out + (te.out.norm - mean(te.out.norm[ind.norm.sl]))}
 
   }
 
@@ -235,7 +247,8 @@ brick_model = function(parameters.in,
     brick.out[[outcnt]] = te.out.norm; names(brick.out)[outcnt]="te.out"; outcnt=outcnt+1;
 
     ## Add this contribution to the total sea level rise
-    slr.out = slr.out + (te.out.norm - mean(te.out.norm[ind.norm.sl]))
+    if (l.obs.norm) {slr.out = slr.out + te.out}
+    else {slr.out = slr.out + (te.out.norm - mean(te.out.norm[ind.norm.sl]))}
   }
 
   #=============================================================================
@@ -253,14 +266,16 @@ brick_model = function(parameters.in,
     ## Normalize temperature to match what the sub-model expects (the parameters
     ## may assume a particular time period associated with Tg=0, for example)
     # SIMPLE expects temp.simple relative to 1960-1990. i0$gis should match this.
-    temp.simple = temp.preindustrial - mean(temp.preindustrial[i0$gis])
+    if (l.obs.norm) {temp.simple = temp.preindustrial - mean.obs$temp.simple}
+    else {temp.simple = temp.preindustrial - mean(temp.preindustrial[i0$gis])}
 
     ## Run SIMPLE (Greenland Ice Sheet model)
     simple.out = simpleF(a=a.simple, b=b.simple, alpha=alpha.simple,
                          beta=beta.simple, V0=V0, Tg=temp.simple, i0=i0$gis)
 
     ## Add this contribution to the total sea level rise
-    slr.out = slr.out + (simple.out$sle.gis - mean(simple.out$sle.gis[ind.norm.sl]))
+    if (l.obs.norm) {slr.out = slr.out + simple.out$sle.gis}
+    else {slr.out = slr.out + (simple.out$sle.gis - mean(simple.out$sle.gis[ind.norm.sl]))}
 
     ## Subtract off normalization period
     itmp = ind.norm.data[match("gis",ind.norm.data[,1]),2]:ind.norm.data[match("gis",ind.norm.data[,1]),3]
@@ -316,8 +331,11 @@ brick_model = function(parameters.in,
     }
 
     ## Normalize
-    itmp = ind.norm.data[match("sl",ind.norm.data[,1]),2]:ind.norm.data[match("sl",ind.norm.data[,1]),3]
-    SL.couple = SL.couple - mean(SL.couple[itmp])
+    if (l.obs.norm) {SL.couple = SL.couple - mean.obs$sl} #not perfect solution b/c it normalizes the model SLR w/o DAIS by the observed value that includes AIS contribution
+    else {
+        itmp = ind.norm.data[match("sl",ind.norm.data[,1]),2]:ind.norm.data[match("sl",ind.norm.data[,1]),3]
+        SL.couple = SL.couple - mean(SL.couple[itmp])
+    }
     dSL.couple = c(-999,diff(SL.couple))
     include_dSLais = 0    # in coupled model, feeding AIS dSL without AIS contribution
 
@@ -342,7 +360,8 @@ brick_model = function(parameters.in,
       dais.out.norm = dais.out$Vais - mean(dais.out$Vais[itmp])
       brick.out[[outcnt]] = dais.out.norm; names(brick.out)[outcnt]="dais.out"; outcnt=outcnt+1;
       ## Add this contribution to the total sea level rise
-      slr.out = slr.out + (dais.out.norm - mean(dais.out.norm[ind.norm.sl]))
+      if (l.obs.norm) {slr.out = slr.out + dais.out$Vais}
+      else {slr.out = slr.out + (dais.out.norm - mean(dais.out.norm[ind.norm.sl]))}
     }
   }
 
@@ -361,7 +380,8 @@ brick_model = function(parameters.in,
     lws.out <- lws.out - mean(lws.out[ind.norm.sl])
 
     ## Add this contribution to the total sea level rise
-    slr.out = slr.out + lws.out
+    if (l.obs.norm) {slr.out = slr.out + lws.out + mean(lws.out[ind.norm.sl])}
+    else {slr.out = slr.out + lws.out}
 
     brick.out[[outcnt]] = lws.out; names(brick.out)[outcnt]="lws.out"; outcnt=outcnt+1;
 

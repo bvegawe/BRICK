@@ -84,7 +84,7 @@ t.beg = proc.time()
 
 # BRICK working directory (the calibration one)
 #setwd('~/codes/BRICK/calibration')
-setwd('/home/scrim/axw322/codes/BRICK/calibration')
+setwd('~/BRICK/calibration')
 
 # Do the Van Dantzig with RCP8.5?
 l.dovandantzig <- FALSE 
@@ -114,7 +114,7 @@ n.ensemble.report = n.ensemble
 if(experiment=='c'){
 #  filename.rho_simple_fixed = "../output_calibration/rho_simple_fixed_12Aug2017.csv"
   filename.BRICKcalibration = "../output_calibration/BRICK-model_calibratedParameters_16Aug2017.nc"
-  filename.DAIScalibration  = "../output_calibration/DAIS_calibratedParameters_17Aug2017.nc"
+  filename.DAIScalibration  = "../output_calibration/DAIS_calibratedParameters_14Jul2017.nc"
   filename.parameters       = paste('../output_calibration/BRICK-model_postcalibratedParameters_control_',today,appen,'.nc', sep="")
   filename.brickout         = paste('../output_model/BRICK-model_physical_control_',today,appen,'.nc',sep="")
   filename.vdout            = paste('../output_model/VanDantzig_RCP85_control_',today,appen,'.nc',sep="")
@@ -475,7 +475,8 @@ for (i in 1:n.ensemble) {
   err.temp   = rep(sigma.T,n.time); if(l.ar1.hetero) {err.temp[midx.temp]=sqrt(sigma.T^2 + obs.temp.err[oidx.temp]^2)}
   err.ocheat = rep(sigma.H,n.time); if(l.ar1.hetero) {err.ocheat[midx.ocheat]=sqrt(sigma.H^2+obs.ocheat.err[oidx.ocheat]^2)}
   temp.norm.stat[i,]   = temp.out.norm[i,]   + ar1.sim(n.time, rho.T, err.temp)
-  ocheat.norm.stat[i,] = ocheat.out.norm[i,] + ar1.sim(n.time, rho.H, err.ocheat)
+  #ocheat.norm.stat[i,] = ocheat.out.norm[i,] + ar1.sim(n.time, rho.H, err.ocheat)
+  ocheat.norm.stat[i,] = ocheat.out.norm[i,] + ar1.sim(n.time, rho.H, rep(sigma.H,n.time)) #ignoring the too large heteroscedastic ocheat obs errors for now
 
   if(experiment=='g') {
     slr.out[i,] = brick.out[[i]]$gmsl.out
@@ -513,7 +514,8 @@ for (i in 1:n.ensemble) {
     err.gsic = rep(sigma.gsic,n.time); if(l.ar1.hetero) {err.gsic[midx.gsic]=sqrt(sigma.gsic^2+obs.gsic.err[oidx.gsic]^2)}
     err.gis = rep(sigma.simple,n.time); if(l.ar1.hetero) {err.gis[midx.gis]=sqrt(sigma.simple^2+obs.gis.err^2)}
 
-    gsic.norm.stat[i,]   = gsic.out.norm[i,]   + ar1.sim(n.time, rho.gsic, err.gsic)
+    #gsic.norm.stat[i,]   = gsic.out.norm[i,]   + ar1.sim(n.time, rho.gsic, err.gsic)
+    gsic.norm.stat[i,]   = gsic.out.norm[i,]   + ar1.sim(n.time, rho.gsic, rep(sigma.gsic,n.time)) #ignoring the too large heteroscedastic gsic obs errors for now
     gis.norm.stat[i,]    = gis.out.norm[i,]    + ar1.sim(n.time, rho.simple, err.gis)
     ais.norm.stat[i,]    = ais.out.norm[i,]    #+ rnorm(  n.time, mean=0,sd=sqrt(var.dais))
     te.norm.stat[i,]     = te.out.norm[i,]

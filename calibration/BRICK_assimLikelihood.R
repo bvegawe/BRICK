@@ -154,7 +154,8 @@ log.lik = function( parameters.in,
 
     # Calculate the DOECLIM ocean heat residuals; apply AR1 error model
     resid.ocheat= obs$ocheat[oidx$ocheat] - (brick.out$doeclim.out$ocheat[midx$ocheat]+H0)
-    llik.ocheat = logl.ar1(resid.ocheat, sigma.H, rho.H, obs.err$ocheat[oidx$ocheat]) # AR(1)
+    #llik.ocheat = logl.ar1(resid.ocheat, sigma.H, rho.H, obs.err$ocheat[oidx$ocheat]) # AR(1)
+    llik.ocheat = logl.ar1(resid.ocheat, sigma.H, rho.H, rep(0,length(oidx$ocheat))) # ignoring the too-large ocheat obs errors for now
 
   }
 
@@ -168,7 +169,8 @@ log.lik = function( parameters.in,
 
     # Calculate the GSIC residuals; apply AR1 error model
     resid.gsic= obs$gsic[oidx$gsic] - brick.out$gsic.out[midx$gsic]
-    llik.gsic = logl.ar1(resid.gsic, sigma.gsic, rho.gsic, obs.err$gsic[oidx$gsic]) # AR(1)
+    #llik.gsic = logl.ar1(resid.gsic, sigma.gsic, rho.gsic, obs.err$gsic[oidx$gsic]) # AR(1)
+    llik.gsic = logl.ar1(resid.gsic, sigma.gsic, rho.gsic, rep(0,length(oidx$gsic))) # ignoring the too-large gsic obs errors for now
   }
 
   ## Calculate contribution from thermosteric expansion
@@ -343,8 +345,8 @@ log.post = function(  parameters.in,
                       luse.brick=luse.brick,
                       i0=i0,
                       l.aisfastdy=l.aisfastdy,
-                      l.obs.norm=FALSE,
-                      mean.obs=NULL
+                      l.obs.norm=l.obs.norm,
+                      mean.obs=mean.obs
                       )
     lpost = llik + lpri
   } else {

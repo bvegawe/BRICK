@@ -106,6 +106,7 @@ appen=''        ## Append file name? In case you process multiple files in one d
 today=Sys.Date(); today=format(today,format="%d%b%Y")
 
 l.aisfastdy = TRUE        # including AIS fast dynamics in the DAIS version used? (must be consistent with how DAIS_calib_driver.R was run)
+l.obs.norm  = FALSE       # normalize to observation values?                      (must be consistent with how DAIS_calib_driver.R was run)
 n.ensemble = 1400000      # total proposed ensemble before rejection sampling
 n.ensemble.gmsl = 500    # pick n.ensemble for BRICK-GMSL to match control
 n.ensemble.report = n.ensemble
@@ -343,6 +344,21 @@ luse.dais     = TRUE    # Antarctic ice sheet model
 luse.lws      = FALSE   # for now, use LWS sampler hard-coded
 luse.brick = cbind(luse.sneasy,luse.doeclim, luse.gsic, luse.te, luse.tee, luse.simple, luse.dais, luse.lws)
 
+## Normalize to observation values (analogous to Hector-BRICK)?
+mean.obs = NULL
+if(l.obs.norm) {
+    i0$gsic = which(mod.time==1850)
+    i0$gis = which(mod.time=1850)
+    #Get the observation means in the normalization periods needed for the coupled model
+    mean.obs = vector("list", 4); names(mean.obs)=as.character(c("temp","sl","temp.gis","temp.dais"))
+    oitmp = which(obs.temp.time == 1850) : which(obs.temp.time == 1870)
+    mean.obs$temp     = mean(obs.all$temp[oitmp])
+    oitmp = which(obs.sl.time   == 1961) : which(obs.sl.time   == 1990)
+    mean.obs$sl       = mean(obs.all$sl[oitmp]  )
+    oitmp = which(obs.temp.time == 1960) : which(obs.temp.time == 1990)
+    mean.obs$temp.simple = mean(obs.all$temp[oitmp])
+}
+
 ## Source the appropriate BRICK model for your purposes
 if(experiment=='c') {source('../R/BRICK_coupledModel.R')}
 if(experiment=='e') {source('../R/BRICK_coupledModel_SIMPLE-GSIC.R')}
@@ -383,7 +399,9 @@ for (i in 1:n.ensemble) {
                                ind.norm.sl       = ind.norm,
                                luse.brick        = luse.brick,
                                i0                = i0,
-                               l.aisfastdy       = l.aisfastdy)
+                               l.aisfastdy       = l.aisfastdy,
+                               l.obs.norm        = l.obs.norm,
+                               mean.obs          = mean.obs)
   setTxtProgressBar(pb, i)
 }
 close(pb)
@@ -858,7 +876,9 @@ for (ff in 1:n.scen) {
                                  ind.norm.sl       = ind.norm,
                                  luse.brick        = luse.brick,
                                  i0                = i0,
-                                 l.aisfastdy       = l.aisfastdy)
+                                 l.aisfastdy       = l.aisfastdy,
+                                 l.obs.norm        = l.obs.norm,
+                                 mean.obs          = mean.obs)
 
     # check if the run turned out bad
     if( is.na(brick.out[[i]]$slr.out[length(mod.time)]) ) {badruns[i]=1}

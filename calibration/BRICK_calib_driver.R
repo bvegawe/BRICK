@@ -40,7 +40,8 @@ l.doplots <- FALSE
 
 ## Set up a filename for saving RData images along the way
 today=Sys.Date(); today=format(today,format="%d%b%Y")
-filename.saveprogress <- paste('BRICK_calib_MCMC_',today,'.RData',sep='')
+appen=''        ## Append file name? In case you calibrate multiple times in one day
+filename.saveprogress <- paste('BRICK_calib_MCMC_',today,"_",appen,'.RData',sep='')
 
 ## Set the seed (for reproducibility)
 set.seed(1234)
@@ -147,6 +148,22 @@ if(luse.te & luse.tee) {
   luse.tee = FALSE 
   print('Only use 1 thermosteric expansion model; switching off explicit model.')
 }
+
+## Normalize to observation values (analogous to Hector-BRICK)?
+l.obs.norm = FALSE
+mean.obs = NULL
+if(l.obs.norm) {
+  i0$gsic = which(mod.time==1850)
+  i0$gis = which(mod.time=1850)
+  #Get the observation means in the normalization periods needed for the coupled model
+  mean.obs = vector("list", 4); names(mean.obs)=as.character(c("temp","sl","temp.gis","temp.dais"))
+  oitmp = which(obs.temp.time == 1850) : which(obs.temp.time == 1870)
+  mean.obs$temp     = mean(obs.all$temp[oitmp])
+  oitmp = which(obs.sl.time   == 1961) : which(obs.sl.time   == 1990)
+  mean.obs$sl       = mean(obs.all$sl[oitmp]  )
+  oitmp = which(obs.temp.time == 1960) : which(obs.temp.time == 1990)
+  mean.obs$temp.simple = mean(obs.all$temp[oitmp])
+}
 ##==============================================================================
 ## Define parameters and their prior ranges
 ## -> Note: 'parnames' is defined here, which establishes how the parameters
@@ -226,7 +243,8 @@ outDEoptim <- DEoptim(minimize_residuals_brick, bound.lower[index.model], bound.
         ind.norm.data=ind.norm.data      , ind.norm.sl=ind.norm      , mod.time=mod.time        ,
         tstep=tstep                      , oidx = oidx.all           , midx = midx.all          ,
         obs=obs.all                      , obs.err = obs.err.all     , trends.te = trends.te    ,
-        luse.brick = luse.brick           , i0 = i0                   , l.aisfastdy = l.aisfastdy )
+        luse.brick = luse.brick          , i0 = i0                   , l.aisfastdy = l.aisfastdy,
+        l.obs.norm = l.obs.norm          , mean.obs = mean.obs       )
 p0.deoptim[index.model] = outDEoptim$optim$bestmem
 
 ## Run the model and examine output at these parameter values
@@ -242,7 +260,9 @@ brick.out = brick_model(parameters.in=p0.deoptim,
                         ind.norm.sl = ind.norm,
                         luse.brick = luse.brick,
                         i0 = i0,
-                        l.aisfastdy = l.aisfastdy)
+                        l.aisfastdy = l.aisfastdy,
+                        l.obs.norm = l.obs.norm,
+                        mean.obs = mean.obs )
 
 ##TODO -- TW -- modify plotting for only the components that are used (incl SNEASY)
 if(l.doplots) {
@@ -359,7 +379,8 @@ amcmc.out1 = MCMC(log.post, niter.mcmc, p0.deoptim, scale=step.mcmc, adapt=TRUE,
                   oidx = oidx.all                , midx = midx.all            , obs=obs.all                   ,
                   obs.err = obs.err.all          , trends.te = trends.te      , bound.lower.in=bound.lower    ,
                   bound.upper.in=bound.upper     , shape.in=shape.invtau      , scale.in=scale.invtau         ,
-                  luse.brick=luse.brick          , i0=i0                      , l.aisfastdy=l.aisfastdy       )
+                  luse.brick=luse.brick          , i0=i0                      , l.aisfastdy=l.aisfastdy       ,
+                  l.obs.norm=l.obs.norm          , mean.obs=mean.obs          )
 t.end=proc.time()                      # save timing
 chain1 = amcmc.out1$samples
 }
@@ -374,7 +395,8 @@ amcmc.extend1 = MCMC.add.samples(amcmc.out1, niter.mcmc,
                     oidx = oidx.all                , midx = midx.all            , obs=obs.all                    ,
                     obs.err = obs.err.all          , trends.te = trends.te      , bound.lower.in=bound.lower     ,
                     bound.upper.in=bound.upper     , shape.in=shape.invtau      , scale.in=scale.invtau          ,
-                    luse.brick=luse.brick          , i0=i0                      , l.aisfastdy=l.aisfastdy        )
+                    luse.brick=luse.brick          , i0=i0                      , l.aisfastdy=l.aisfastdy        ,
+                    l.obs.norm=l.obs.norm          , mean.obs=mean.obs          )
 t.end=proc.time()
 chain1 = amcmc.extend1$samples
 }
@@ -392,7 +414,8 @@ amcmc.par1 = MCMC.parallel(log.post, niter.mcmc, p0.deoptim, n.chain=nnode.mcmc,
                   oidx = oidx.all                , midx = midx.all            , obs=obs.all                   ,
                   obs.err = obs.err.all          , trends.te = trends.te      , bound.lower.in=bound.lower    ,
                   bound.upper.in=bound.upper     , shape.in=shape.invtau      , scale.in=scale.invtau         ,
-                  luse.brick=luse.brick          , i0=i0                      , l.aisfastdy=l.aisfastdy       )
+                  luse.brick=luse.brick          , i0=i0                      , l.aisfastdy=l.aisfastdy        ,
+                  l.obs.norm=l.obs.norm          , mean.obs=mean.obs          )
 t.end=proc.time()                      # save timing
 }
 
@@ -525,7 +548,7 @@ for (i in 1:length(parnames)){lmax=max(lmax,nchar(parnames[i]))}
 
 ## Name the output file
 today=Sys.Date(); today=format(today,format="%d%b%Y")
-filename.parameters = paste('../output_calibration/BRICK-model_calibratedParameters_',today,'.nc',sep="")
+filename.parameters = paste('../output_calibration/BRICK-model_calibratedParameters_',today,"_",appen,'.nc',sep="")
 
 library(ncdf4)
 dim.parameters <- ncdim_def('n.parameters', '', 1:ncol(parameters.posterior), unlim=FALSE)

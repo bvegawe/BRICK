@@ -154,9 +154,9 @@ l.obs.norm = FALSE
 mean.obs = NULL
 if(l.obs.norm) {
   i0$gsic = which(mod.time==1850)
-  i0$gis = which(mod.time=1850)
+  i0$gis = which(mod.time==1850)
   #Get the observation means in the normalization periods needed for the coupled model
-  mean.obs = vector("list", 4); names(mean.obs)=as.character(c("temp","sl","temp.gis","temp.dais"))
+  mean.obs = vector("list", 3); names(mean.obs)=as.character(c("temp","sl","temp.simple"))
   oitmp = which(obs.temp.time == 1850) : which(obs.temp.time == 1870)
   mean.obs$temp     = mean(obs.all$temp[oitmp])
   oitmp = which(obs.sl.time   == 1961) : which(obs.sl.time   == 1990)

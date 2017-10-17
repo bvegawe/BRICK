@@ -84,7 +84,7 @@ t.beg = proc.time()
 
 # BRICK working directory (the calibration one)
 #setwd('~/codes/BRICK/calibration')
-setwd('~/BRICK/calibration')
+setwd('~/BRICK-Hector_calib/calibration')
 
 # Do the Van Dantzig with RCP8.5?
 l.dovandantzig <- FALSE 
@@ -348,9 +348,9 @@ luse.brick = cbind(luse.sneasy,luse.doeclim, luse.gsic, luse.te, luse.tee, luse.
 mean.obs = NULL
 if(l.obs.norm) {
     i0$gsic = which(mod.time==1850)
-    i0$gis = which(mod.time=1850)
+    i0$gis = which(mod.time==1850)
     #Get the observation means in the normalization periods needed for the coupled model
-    mean.obs = vector("list", 4); names(mean.obs)=as.character(c("temp","sl","temp.gis","temp.dais"))
+    mean.obs = vector("list", 4); names(mean.obs)=as.character(c("temp","sl","temp.simple"))
     oitmp = which(obs.temp.time == 1850) : which(obs.temp.time == 1870)
     mean.obs$temp     = mean(obs.all$temp[oitmp])
     oitmp = which(obs.sl.time   == 1961) : which(obs.sl.time   == 1990)
